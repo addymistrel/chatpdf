@@ -1,18 +1,17 @@
 import { Pinecone, PineconeRecord } from "@pinecone-database/pinecone";
+import { downloadFromS3 } from "./s3-server";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import md5 from "md5";
 import {
   Document,
   RecursiveCharacterTextSplitter,
 } from "@pinecone-database/doc-splitter";
-import { downloadFromS3 } from "../s3-server";
-import { convertToAscii } from "../utils";
-import { getEmbeddings } from "../embeddings";
-
+import { getEmbeddings } from "./embeddings";
+import { convertToAscii } from "./utils";
 
 export const getPineconeClient = () => {
   return new Pinecone({
-    //environment: process.env.PINECONE_ENVIRONMENT!,
+    environment: process.env.PINECONE_ENVIRONMENT!,
     apiKey: process.env.PINECONE_API_KEY!,
   });
 };
@@ -43,30 +42,27 @@ export async function loadS3IntoPinecone(fileKey: string) {
 
   // 4. upload to pinecone
   const client = await getPineconeClient();
-  const pineconeIndex = await client.index("chat-pdf");
+  const pineconeIndex = await client.index("chatpdf");
   const namespace = pineconeIndex.namespace(convertToAscii(fileKey));
 
   console.log("inserting vectors into pinecone");
-  //vectors should be passed to pinecone
-  //console.log(vectors);
   await namespace.upsert(vectors);
-  console.log('line 52');
+
   return documents[0];
 }
 
 async function embedDocument(doc: Document) {
   try {
     const embeddings = await getEmbeddings(doc.pageContent);
-    //console.log('embeddings')
-    //console.log(embeddings);
     const hash = md5(doc.pageContent);
+
     return {
       id: hash,
       values: embeddings,
       metadata: {
         text: doc.metadata.text,
         pageNumber: doc.metadata.pageNumber,
-      }
+      },
     } as PineconeRecord;
   } catch (error) {
     console.log("error embedding document", error);
