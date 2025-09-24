@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
-import { messages } from "@/lib/db/Schema";
-
+import { messages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
